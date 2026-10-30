@@ -5,6 +5,7 @@ package li.cil.oc2.common.inet;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.TickEvent;
 import li.cil.oc2.common.Config;
+import li.cil.oc2.common.Config.InternetMode;
 import li.cil.oc2.common.inet.l2.LinkLocalLayer;
 import li.cil.oc2.common.inet.l3.AddressFilter;
 import li.cil.oc2.common.inet.l3.NetworkLayer;
@@ -131,8 +132,9 @@ public final class InternetManager {
     }
 
     public InternetConnection connect(final InternetAdapter adapter, final String originDescription) {
-        final InternetConnection connection =
-            new InternetConnection(adapter, buildStack(originDescription));
+        final InternetConnection connection = Config.internetMode == InternetMode.NAT
+            ? new NatInternetConnection(adapter, buildStack(originDescription))
+            : new VxlanInternetConnection(adapter);
         connections.add(connection);
         return connection;
     }

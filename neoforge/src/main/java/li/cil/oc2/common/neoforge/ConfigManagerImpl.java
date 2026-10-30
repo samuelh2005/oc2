@@ -82,6 +82,11 @@ public final class ConfigManagerImpl extends ConfigManager {
         }
 
         @Override
+        public <T extends Enum<T>> ConfigValue<T> defineEnum(final String path, final T defaultValue) {
+            return new ConfigValueImpl<>(builder.defineEnum(path, defaultValue));
+        }
+
+        @Override
         public Builder comment(final String... comment) {
             builder.comment(comment);
             return this;

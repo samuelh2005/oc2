@@ -139,11 +139,30 @@ public final class Config {
     @Path("admin.internet")
     @Comment({
         "Whether computers may open connections to the outside world.",
-        "Traffic leaves from this server's address, so anything a computer reaches sees the",
-        "connection as coming from the server, not from the player. The address and port filters",
-        "below decide what is reachable; turn this off to refuse everything."
+        "The address and port filters below decide what is reachable;",
+        "turn this off to refuse everything."
     })
     public static boolean internetEnabled = true;
+
+    public enum InternetMode { NAT, VXLAN }
+
+    @Path("admin.internet")
+    @Comment({
+        "How computers connect to the host network.",
+        "NAT: computers are behind a NAT, so they can initiate connections to the outside world,",
+        "but outside hosts cannot initiate connections to them.",
+        "In this mode, traffic leaves from this server's address, so anything a computer reaches sees the",
+        "connection as coming from the server, not from the player.",
+        "VXLAN: computers are bridged into the outside world, so they can initiate and receive",
+        "connections from outside hosts.",
+        "In this mode, traffic leaves from the computer's own address, so anything a computer reaches",
+        "sees the connection as coming from the computer, not from the server.",
+        "This mode requires the host network to support VXLAN, and may require additional configuration",
+        "on the host to allow traffic to reach the computers.",
+        "This mode is more powerful, but also more dangerous, as it allows computers to be reached",
+        "from the outside world, so only use it if you know what you're doing."
+    })
+    public static InternetMode internetMode = InternetMode.NAT;
 
     @Path("admin.internet")
     @Comment({
@@ -209,6 +228,30 @@ public final class Config {
     @Comment("Maximum throughput across all gateways on the server, in bytes per second, each way.")
     @Min(30280)
     public static int internetBytesPerSecondTotal = 512 * 1024;
+
+    @Path("admin.internet.vxlan")
+    @Comment("The local address to bind the VXLAN tunnel to.")
+    public static String vxlanBindAddress = "0.0.0.0";
+
+    @Path("admin.internet.vxlan")
+    @Comment("The local port to bind the VXLAN tunnel to.")
+    public static int vxlanBindPort = 4789;
+
+    @Path("admin.internet.vxlan") @ItemType(String.class)
+    @Comment("Remote VXLAN tunnel endpoints (VTEPs) as host:port. Frames are only sent to, and accepted from, these peers.")
+    public static List<String> vxlanPeers = new ArrayList<>();
+
+    @Path("admin.internet.vxlan")
+    @Comment("The VXLAN VNI to use for the tunnel.")
+    @Min(1)
+    @Max(16777215)
+    public static int vxlanVni = 42;
+
+    @Path("admin.internet.vxlan")
+    @Comment("The MTU to use for the VXLAN tunnel, in bytes.")
+    @Min(576)
+    @Max(1500)
+    public static int vxlanMtu = 1400;
 
     public static int cpuEnergyPerTick(@Nullable final ArchitectureType architecture) {
         if (architecture == null) {

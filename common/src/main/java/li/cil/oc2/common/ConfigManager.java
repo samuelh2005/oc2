@@ -187,6 +187,11 @@ public abstract class ConfigManager {
             return;
         }
 
+        if (field.getType().isEnum()) {
+            values.add(parseEnumField(instance, field, builder));
+            return;
+        }
+
         final var serializers = STRING_CONVERTERS.get(field.getType());
         if (serializers != null) {
             values.add(parseStringLikeField(instance, field, builder, serializers));
@@ -239,6 +244,13 @@ public abstract class ConfigManager {
 
         return new SetFieldConfigItem<>(field, withCommonAttributes(field, builder).define(getPath(field), defaultValue),
             serializers.getRight());
+    }
+
+    @SuppressWarnings("rawtypes")
+    private static ConfigFieldPair<?> parseEnumField(final Object instance, final Field field, final Builder builder) throws IllegalAccessException {
+        final Enum defaultValue = (Enum) field.get(instance);
+
+        return new SetFieldConfigItem<>(field, withCommonAttributes(field, builder).defineEnum(getPath(field), defaultValue));
     }
 
     // --------------------------------------------------------------------- //
@@ -458,6 +470,8 @@ public abstract class ConfigManager {
         <T> ConfigValue<T> define(String path, T defaultValue);
 
         <T extends Comparable<? super T>> ConfigValue<T> defineInRange(String path, T defaultValue, T min, T max, Class<T> type);
+
+        <T extends Enum<T>> ConfigValue<T> defineEnum(String path, T defaultValue);
 
         Builder comment(String... comment);
 

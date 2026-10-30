@@ -13,7 +13,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class InternetConnection {
+public abstract class InternetConnection {
     public static final int FRAME_QUEUE_SIZE = 64;
     public static final int MAX_FRAME_SIZE = LinkLocalLayer.FRAME_SIZE;
 
@@ -24,7 +24,6 @@ public final class InternetConnection {
     // --------------------------------------------------------------------- //
 
     private final InternetAdapter adapter;
-    private final LinkLocalLayer stack;
     private final BlockingQueue<byte[]> toDevice = new ArrayBlockingQueue<>(FRAME_QUEUE_SIZE);
     private final BlockingQueue<byte[]> toInternet = new ArrayBlockingQueue<>(FRAME_QUEUE_SIZE);
     private final ByteBuffer receiveBuffer = ByteBuffer.allocate(MAX_FRAME_SIZE);
@@ -34,9 +33,8 @@ public final class InternetConnection {
 
     // --------------------------------------------------------------------- //
 
-    InternetConnection(final InternetAdapter adapter, final LinkLocalLayer stack) {
+    InternetConnection(final InternetAdapter adapter) {
         this.adapter = adapter;
-        this.stack = stack;
     }
 
     // --------------------------------------------------------------------- //
@@ -80,7 +78,7 @@ public final class InternetConnection {
             return;
         }
         try {
-            stack.onTick();
+            onTick();
 
             int budget = byteBudget;
             byte[] frame;
@@ -88,13 +86,13 @@ public final class InternetConnection {
                 final int cost = Math.max(frame.length, MIN_ETHERNET_FRAME_SIZE);
                 budget -= cost;
                 shared.charge(cost);
-                stack.sendEthernetFrame(ByteBuffer.wrap(frame));
+                sendEthernetFrame(ByteBuffer.wrap(frame));
             }
 
             budget = byteBudget;
             while (budget > 0 && shared.hasRemaining()) {
                 receiveBuffer.clear();
-                if (!stack.receiveEthernetFrame(receiveBuffer)) {
+                if (!receiveEthernetFrame(receiveBuffer)) {
                     break;
                 }
                 final byte[] outgoing = new byte[receiveBuffer.remaining()];
@@ -117,9 +115,14 @@ public final class InternetConnection {
         }
         shutDown = true;
         try {
-            stack.onStop();
+            onShutdown();
         } catch (final Exception e) {
             LOGGER.error("Failed to close an internet connection.", e);
         }
     }
+
+    protected abstract void onTick();
+    protected abstract void sendEthernetFrame(ByteBuffer frame);        // guest -> network
+    protected abstract boolean receiveEthernetFrame(ByteBuffer frame); // network -> guest
+    protected abstract void onShutdown();
 }
